@@ -4,6 +4,7 @@ import ScoreGauge from '../components/ScoreGauge'
 import ModalityBar from '../components/ModalityBar'
 import RiskBadge from '../components/RiskBadge'
 import ForensicReport from '../components/ForensicReport'
+import AblationComparison from '../components/AblationComparison'
 
 const SCENARIOS = [
   {
@@ -108,6 +109,7 @@ export default function Analyzer() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeStep, setActiveStep] = useState(0)
+  const [showAblation, setShowAblation] = useState(false)
 
   const runAnalysis = async () => {
     setLoading(true)
@@ -122,7 +124,7 @@ export default function Analyzer() {
       setActiveStep(3)
 
       const data = mode === 'scenario'
-        ? await analyzeScenario(scenario)
+        ? await analyzeScenario(scenario, showAblation)
         : await analyzeTransaction(tx)
 
       setActiveStep(4)
@@ -275,6 +277,21 @@ export default function Analyzer() {
             </div>
           )}
 
+          {/* Ablation toggle — only available in scenario mode */}
+          {mode === 'scenario' && (
+            <button
+              onClick={() => setShowAblation(v => !v)}
+              className={`w-full py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                showAblation
+                  ? 'border-purple-600 bg-purple-950/40 text-purple-300'
+                  : 'border-slate-700 bg-sentinel-800 text-slate-400 hover:border-slate-500'
+              }`}
+            >
+              <span>{showAblation ? '🔬' : '🔬'}</span>
+              {showAblation ? 'Ablation Mode ON — RAG vs No-RAG comparison' : 'Enable Ablation Study (RAG vs No-RAG)'}
+            </button>
+          )}
+
           <button
             onClick={runAnalysis}
             disabled={loading}
@@ -396,6 +413,16 @@ export default function Analyzer() {
                 </p>
                 <ForensicReport report={result.forensic_report} loading={loading} />
               </div>
+
+              {/* ── ABLATION: RAG vs No-RAG ── */}
+              {result.baseline_report && (
+                <div className="bg-sentinel-800 border border-purple-800/40 rounded-2xl p-5">
+                  <AblationComparison
+                    baselineReport={result.baseline_report}
+                    groundedReport={result.forensic_report}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
