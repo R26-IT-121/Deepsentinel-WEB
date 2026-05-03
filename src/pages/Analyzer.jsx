@@ -68,14 +68,14 @@ const DEFAULT_TX = {
 const MODALITY_META = {
   graph: {
     label: 'Graph Neural Network (GNN)',
-    member: 'Member 2 — Ewaduge',
+    member: 'Member 1 — Ewaduge',
     component: 'Edge-Enhanced GraphSAGE',
     detects: 'Mule rings, hub-and-spoke topology',
     icon: '🕸️',
   },
   behavioral: {
     label: 'Behavioral VAE',
-    member: 'Member 1 — Wijesinghe',
+    member: 'Member 2 — Wijesinghe',
     component: 'Stratified VAE + DSAA',
     detects: 'Anomalous amounts, balance patterns, drain ratio',
     icon: '📊',
@@ -288,10 +288,7 @@ export default function Analyzer() {
               <p className="font-semibold">Pipeline Error</p>
               <p className="text-red-400 text-xs">{error}</p>
               <p className="text-slate-600 text-xs pt-1">
-                Start the backend first:
-                <code className="block mt-1 bg-sentinel-900 text-slate-400 px-2 py-1 rounded text-xs">
-                  python -m uvicorn backend.main:app --reload --port 8000
-                </code>
+                Check that the Railway backend is reachable at <span className="text-slate-500">/health</span>
               </p>
             </div>
           )}
