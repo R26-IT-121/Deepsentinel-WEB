@@ -69,23 +69,17 @@ const DEFAULT_TX = {
 const MODALITY_META = {
   graph: {
     label: 'Graph Neural Network (GNN)',
-    member: 'Member 1 — Ewaduge',
-    component: 'Edge-Enhanced GraphSAGE',
-    detects: 'Mule rings, hub-and-spoke topology',
+    detail: 'Edge-Enhanced GraphSAGE · Mule rings & hub-and-spoke topology',
     icon: '🕸️',
   },
   behavioral: {
     label: 'Behavioral VAE',
-    member: 'Member 2 — Wijesinghe',
-    component: 'Stratified VAE + DSAA',
-    detects: 'Anomalous amounts, balance patterns, drain ratio',
+    detail: 'Stratified VAE + DSAA · Anomalous amounts & balance patterns',
     icon: '📊',
   },
   temporal: {
     label: 'Temporal CNN',
-    member: 'Member 3 — Pathirana',
-    component: 'TSCFD — System-Context TCN',
-    detects: 'Mechanically regular timing, burstiness near zero',
+    detail: 'TSCFD Temporal CNN · Timing burstiness & velocity patterns',
     icon: '⏱️',
   },
 }
@@ -366,7 +360,7 @@ export default function Analyzer() {
                             icon={meta.icon}
                           />
                           <p className="text-xs text-slate-600 ml-6">
-                            {meta.member} · {meta.component}
+                            {meta.detail}
                             {!result[`${key}_available`] && ' — score imputed to 0.5 with penalty'}
                           </p>
                         </div>
