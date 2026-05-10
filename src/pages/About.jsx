@@ -1,114 +1,135 @@
 import { Link } from 'react-router-dom'
 
-const TEAM = [
+const COMPONENTS = [
   {
-    name: 'Ewaduge S.B',
-    role: 'Graph Neural Network Engineer',
-    component: 'Edge-Enhanced GraphSAGE',
-    tagline: 'Detects mule rings and hub-and-spoke laundering networks via graph topology analysis.',
+    icon: '🕸️',
+    component: 'Graph Neural Network',
+    model: 'Edge-Enhanced GraphSAGE',
+    tagline: 'Detects mule rings and hub-and-spoke laundering networks by mapping transaction topology as a graph.',
     tech: ['PyTorch Geometric', 'NetworkX', 'Python'],
     color: 'purple',
-    icon: '🕸️',
   },
   {
-    name: 'Wijesinghe L.P.D.B',
-    role: 'Behavioral Anomaly Researcher',
-    component: 'Stratified VAE + DSAA',
-    tagline: 'Flags behavioral anomalies per transaction type using variational autoencoders.',
+    icon: '📊',
+    component: 'Behavioral Anomaly Engine',
+    model: 'Stratified VAE + DSAA',
+    tagline: 'Flags per-account behavioral deviations using variational autoencoders trained per transaction stratum.',
     tech: ['TensorFlow', 'Keras', 'Python'],
     color: 'orange',
-    icon: '📊',
   },
   {
-    name: 'Pathirana P.K.V',
-    role: 'Temporal Pattern Analyst',
-    component: 'TSCFD Temporal CNN',
-    tagline: 'Detects automated fraud scripts via timing burstiness and velocity signatures.',
+    icon: '⏱️',
+    component: 'Temporal Pattern Detector',
+    model: 'TSCFD Temporal CNN',
+    tagline: 'Identifies mechanically regular, high-frequency transfer bursts that reveal automated fraud scripts.',
     tech: ['TensorFlow', 'Keras', 'Python'],
     color: 'blue',
-    icon: '⏱️',
   },
   {
-    name: 'Vidanaarachchi T.M',
-    role: 'Fusion & Explainability Engineer',
-    component: 'Ensemble Fusion + RAG Forensics',
-    tagline: 'Fuses all signals into a unified score and generates grounded forensic reports via RAG.',
-    tech: ['scikit-learn', 'ChromaDB', 'Gemini', 'FastAPI', 'React'],
-    color: 'green',
     icon: '⚖️',
-    highlight: true,
+    component: 'Ensemble Fusion + RAG Forensics',
+    model: 'LR Meta-Classifier · ChromaDB · Gemini',
+    tagline: 'Fuses all signals into a unified Fraud Confidence Score, then retrieves FATF typologies to anchor a Chain-of-Evidence LLM report.',
+    tech: ['scikit-learn', 'ChromaDB', 'Gemini 2.0 Flash', 'FastAPI', 'React'],
+    color: 'green',
   },
 ]
 
 const ACCENT = {
-  purple: { border: 'border-purple-700/40', bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
-  orange: { border: 'border-orange-700/40', bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
-  blue: { border: 'border-blue-700/40', bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
-  green: { border: 'border-green-700/40', bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
+  purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/8', text: 'text-purple-400' },
+  orange: { border: 'border-orange-500/20', bg: 'bg-orange-500/8', text: 'text-orange-400' },
+  blue:   { border: 'border-blue-500/20',   bg: 'bg-blue-500/8',   text: 'text-blue-400' },
+  green:  { border: 'border-green-500/20',  bg: 'bg-green-500/8',  text: 'text-green-400' },
 }
 
 const TECH_STACK = [
-  { layer: 'API Layer', items: ['FastAPI', 'uvicorn', 'httpx', 'Pydantic'] },
-  { layer: 'ML / Fusion', items: ['scikit-learn', 'NumPy', 'joblib'] },
-  { layer: 'RAG / Vector', items: ['ChromaDB', 'sentence-transformers', 'all-MiniLM-L6-v2'] },
-  { layer: 'LLM', items: ['Gemini 2.0 Flash', 'Google AI Studio', 'Chain-of-Evidence Prompting'] },
-  { layer: 'Frontend', items: ['React 19', 'Vite 5', 'Tailwind CSS 3', 'Axios'] },
-  { layer: 'Infrastructure', items: ['Railway (backend)', 'Vercel (frontend)', 'GitHub Actions'] },
+  { layer: 'API Layer',      items: ['FastAPI', 'uvicorn', 'httpx', 'Pydantic'] },
+  { layer: 'ML / Fusion',   items: ['scikit-learn', 'NumPy', 'joblib'] },
+  { layer: 'RAG / Vector',  items: ['ChromaDB', 'sentence-transformers', 'all-MiniLM-L6-v2'] },
+  { layer: 'LLM',           items: ['Gemini 2.0 Flash', 'Chain-of-Evidence Prompting'] },
+  { layer: 'Frontend',      items: ['React 19', 'Vite 5', 'Tailwind CSS 3', 'Axios'] },
+  { layer: 'Infrastructure',items: ['Railway (backend)', 'Vercel (frontend)', 'GitHub'] },
+]
+
+const PIPELINE = [
+  { step: '01', label: 'Transaction Input',   desc: 'Raw transaction data — amount, counterparties, timing — enters the pipeline.' },
+  { step: '02', label: 'Three-Model Scoring', desc: 'GNN, VAE, and TCN each produce an independent fraud probability in parallel.' },
+  { step: '03', label: 'Ensemble Fusion',     desc: 'Logistic Regression meta-classifier fuses the three scores into a single Fraud Confidence Score (F1 0.988).' },
+  { step: '04', label: 'FATF RAG Retrieval',  desc: 'The fused risk profile semantically queries a ChromaDB store of 10 FATF typologies. Best match anchors the LLM.' },
+  { step: '05', label: 'Forensic Report',     desc: 'Chain-of-Evidence prompting constrains Gemini to cite only retrieved FATF definitions and actual model scores.' },
 ]
 
 export default function About() {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 space-y-20">
+    <div className="max-w-5xl mx-auto px-6 py-16 space-y-20">
 
       {/* ── HERO ── */}
-      <section className="space-y-4">
-        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-4 py-1.5 rounded-full font-medium">
-          SLIIT · Final Year Group Project · 2026
+      <section className="space-y-5 text-center max-w-3xl mx-auto">
+        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-4 py-1.5 rounded-full font-medium tracking-wide">
+          Research Architecture · 2026
         </div>
-        <h1 className="text-4xl font-bold text-white">The Team Behind DeepSentinel</h1>
-        <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
-          Four researchers combining expertise in graph neural networks, behavioral AI,
-          temporal pattern recognition, and generative explainability to build a
-          legally-admissible fraud detection platform.
+        <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight">
+          How DeepSentinel Works
+        </h1>
+        <p className="text-slate-400 text-lg leading-relaxed">
+          Four specialized components — graph topology, behavioral modeling, temporal analysis,
+          and RAG-grounded forensics — operating as a single unified pipeline.
         </p>
       </section>
 
-      {/* ── TEAM CARDS ── */}
-      <section className="space-y-5">
-        <h2 className="text-xl font-bold text-white">Research Team</h2>
+      {/* ── PIPELINE STEPS ── */}
+      <section className="space-y-6">
+        <div className="text-center space-y-2">
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-[0.2em]">Detection Pipeline</p>
+          <h2 className="text-2xl font-bold text-white">Five stages from input to report</h2>
+        </div>
+        <div className="space-y-3">
+          {PIPELINE.map((s) => (
+            <div
+              key={s.step}
+              className="flex items-start gap-5 rounded-2xl border border-white/[0.06] p-5 transition-colors hover:bg-white/[0.02]"
+              style={{ background: 'rgba(255,255,255,0.015)' }}
+            >
+              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center font-mono text-xs text-blue-400 font-semibold">
+                {s.step}
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-white">{s.label}</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4 COMPONENT CARDS ── */}
+      <section className="space-y-6">
+        <div className="text-center space-y-2">
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-[0.2em]">System Components</p>
+          <h2 className="text-2xl font-bold text-white">Four specialized models</h2>
+        </div>
         <div className="grid sm:grid-cols-2 gap-4">
-          {TEAM.map((m) => {
-            const a = ACCENT[m.color]
+          {COMPONENTS.map((c) => {
+            const a = ACCENT[c.color]
             return (
               <div
-                key={m.name}
-                className={`bg-slate-900/60 border ${a.border} rounded-2xl p-6 space-y-4 ${m.highlight ? 'ring-1 ring-blue-500/20' : ''} hover:bg-slate-900/80 transition-colors`}
+                key={c.component}
+                className={`rounded-2xl border ${a.border} p-6 space-y-4 transition-all duration-300 hover:scale-[1.01]`}
+                style={{ background: 'rgba(255,255,255,0.02)' }}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${a.bg} border ${a.border} flex items-center justify-center text-2xl flex-shrink-0`}>
-                    {m.icon}
+                  <div className={`w-11 h-11 rounded-xl ${a.bg} border ${a.border} flex items-center justify-center text-xl flex-shrink-0`}>
+                    {c.icon}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-white">{m.name}</p>
-                      {m.highlight && (
-                        <span className="text-xs bg-blue-500/20 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-full">
-                          This component
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-xs font-medium mt-0.5 ${a.text}`}>{m.role}</p>
+                  <div>
+                    <p className="font-semibold text-white text-sm">{c.component}</p>
+                    <p className={`text-xs font-mono mt-0.5 ${a.text}`}>{c.model}</p>
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">{m.component}</p>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{m.tagline}</p>
-                </div>
-
+                <p className="text-xs text-slate-500 leading-relaxed">{c.tagline}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {m.tech.map(t => (
-                    <span key={t} className="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded-md">
+                  {c.tech.map(t => (
+                    <span key={t} className="text-xs bg-white/[0.04] border border-white/[0.08] text-slate-400 px-2 py-0.5 rounded-md">
                       {t}
                     </span>
                   ))}
@@ -120,15 +141,22 @@ export default function About() {
       </section>
 
       {/* ── TECH STACK ── */}
-      <section className="space-y-5">
-        <h2 className="text-xl font-bold text-white">Technology Stack</h2>
+      <section className="space-y-6">
+        <div className="text-center space-y-2">
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-[0.2em]">Technology Stack</p>
+          <h2 className="text-2xl font-bold text-white">Built on production-grade tooling</h2>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {TECH_STACK.map((layer) => (
-            <div key={layer.layer} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{layer.layer}</p>
+            <div
+              key={layer.layer}
+              className="rounded-xl border border-white/[0.06] p-4 space-y-3"
+              style={{ background: 'rgba(255,255,255,0.015)' }}
+            >
+              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{layer.layer}</p>
               <div className="flex flex-wrap gap-1.5">
                 {layer.items.map(item => (
-                  <span key={item} className="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded-md">
+                  <span key={item} className="text-xs bg-white/[0.04] border border-white/[0.07] text-slate-400 px-2 py-0.5 rounded-md">
                     {item}
                   </span>
                 ))}
@@ -138,39 +166,38 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── RESEARCH CONTEXT ── */}
-      <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 space-y-5">
-        <h2 className="text-xl font-bold text-white">Research Context</h2>
-        <div className="grid sm:grid-cols-2 gap-6 text-sm text-slate-400 leading-relaxed">
-          <div className="space-y-3">
+      {/* ── NOVELTY STATEMENT ── */}
+      <section
+        className="relative rounded-3xl border border-white/[0.07] p-10 overflow-hidden space-y-6"
+        style={{ background: 'rgba(255,255,255,0.02)' }}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.07) 0%, transparent 70%)' }} />
+        <div className="relative space-y-4 max-w-2xl">
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-[0.2em]">Research Contribution</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-white leading-snug">
+            The first system to combine multi-modal deep learning fraud detection with FATF-grounded LLM forensic narratives.
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-5 text-sm text-slate-400 leading-relaxed">
             <p>
-              DeepSentinel addresses a critical gap confirmed in a <span className="text-slate-200">427-paper ScienceDirect 2025 survey</span> — no existing system combines a multi-modal deep learning fraud ensemble with a RAG layer that grounds an LLM's forensic narrative in a structured fraud typology knowledge base.
+              A <span className="text-slate-200">427-paper ScienceDirect 2025 survey</span> confirmed no existing system pairs a multi-modal fraud ensemble with a RAG layer that grounds LLM outputs in a structured typology knowledge base.
             </p>
             <p>
-              The platform introduces a <span className="text-slate-200">Typology-Grounded LLM Forensic Analyst</span> — an architecture where the LLM retrieves matching FATF fraud typologies before generating any narrative, ensuring every claim is traceable to either a model output or a regulatory definition.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <p>
-              The novelty is the <span className="text-slate-200">integration</span>: multi-modal deep learning (GNN + VAE + TCN) feeding a stacking ensemble, whose output drives a semantic RAG query against a FATF knowledge base, whose retrieved context constrains a Chain-of-Evidence LLM prompt.
-            </p>
-            <p>
-              This combination has been independently confirmed absent in three peer-reviewed surveys (ScienceDirect 2025, arXiv April 2025, ScienceDirect January 2026), establishing defensible academic novelty.
+              This gap has been independently confirmed in three peer-reviewed surveys (ScienceDirect 2025, arXiv April 2025, ScienceDirect January 2026), establishing defensible academic novelty.
             </p>
           </div>
         </div>
-        <div className="pt-2 border-t border-slate-800 flex flex-wrap gap-3">
+        <div className="relative flex flex-wrap gap-3">
           <Link
             to="/analyzer"
-            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all text-sm shadow-lg shadow-blue-600/20"
           >
-            Try the Analyzer →
+            Try the Live Demo →
           </Link>
           <a
             href="https://deepsent-api-production.up.railway.app/docs"
             target="_blank"
             rel="noreferrer"
-            className="border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white px-5 py-2.5 rounded-xl transition-all text-sm"
+            className="border border-white/10 hover:border-white/20 text-slate-400 hover:text-white px-6 py-2.5 rounded-xl transition-all text-sm"
           >
             API Documentation ↗
           </a>

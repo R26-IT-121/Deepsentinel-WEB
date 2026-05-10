@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { analyzeScenario, analyzeTransaction } from '../services/api'
+import { analyzeScenario } from '../services/api'
 import ScoreGauge from '../components/ScoreGauge'
 import ModalityBar from '../components/ModalityBar'
 import RiskBadge from '../components/RiskBadge'
@@ -7,362 +7,222 @@ import ForensicReport from '../components/ForensicReport'
 import AblationComparison from '../components/AblationComparison'
 
 const SCENARIOS = [
-  {
-    value: 'mule_network',
-    label: 'Mule Network',
-    icon: '🕸️',
-    desc: 'Multiple fresh accounts funneling funds to a central hub — hub-and-spoke laundering.',
-    expect: 'High GNN score, moderate behavioral',
-  },
-  {
-    value: 'layering',
-    label: 'Layering',
-    icon: '🔀',
-    desc: 'Rapid multi-hop TRANSFER chain to obscure the origin of funds.',
-    expect: 'High across all three modalities',
-  },
-  {
-    value: 'smurfing',
-    label: 'Smurfing',
-    icon: '🐡',
-    desc: 'Many small transactions deliberately kept below reporting thresholds.',
-    expect: 'High temporal (regular timing), moderate graph',
-  },
-  {
-    value: 'account_takeover',
-    label: 'Account Takeover',
-    icon: '🔓',
-    desc: 'Normal account suddenly draining its balance into a new destination.',
-    expect: 'High behavioral VAE, low GNN',
-  },
-  {
-    value: 'velocity_fraud',
-    label: 'Velocity Fraud',
-    icon: '⚡',
-    desc: 'Mechanically regular high-frequency transfers — automated bot activity.',
-    expect: 'Very high temporal (burstiness near 0)',
-  },
-  {
-    value: 'legitimate',
-    label: 'Legitimate',
-    icon: '✅',
-    desc: 'Normal customer transaction — all three models should return low scores.',
-    expect: 'All scores below 0.25',
-  },
+  { value: 'mule_network',    label: 'Mule Network',     icon: '🕸️', color: 'purple', short: 'Hub-and-spoke fund routing' },
+  { value: 'layering',        label: 'Layering',          icon: '🔀', color: 'blue',   short: 'Multi-hop transfer chain' },
+  { value: 'smurfing',        label: 'Smurfing',          icon: '🐡', color: 'cyan',   short: 'Below-threshold structuring' },
+  { value: 'account_takeover',label: 'Account Takeover',  icon: '🔓', color: 'orange', short: 'Unauthorized account drain' },
+  { value: 'velocity_fraud',  label: 'Velocity Fraud',    icon: '⚡', color: 'yellow', short: 'Automated rapid transfers' },
+  { value: 'legitimate',      label: 'Legitimate',        icon: '✅', color: 'green',  short: 'Normal customer transaction' },
 ]
 
-const TX_TYPES = ['TRANSFER', 'CASH_OUT', 'CASH_IN', 'PAYMENT', 'DEBIT']
-
-const DEFAULT_TX = {
-  step: 206,
-  type: 'TRANSFER',
-  amount: 181234.56,
-  nameOrig: 'C1231006815',
-  nameDest: 'C987654321',
-  oldbalanceOrg: 181234.56,
-  newbalanceOrig: 0.0,
-  oldbalanceDest: 0.0,
-  newbalanceDest: 181234.56,
-  isFlaggedFraud: 0,
+const S_COLOR = {
+  purple: { border: 'border-purple-500/40', bg: 'bg-purple-500/10', text: 'text-purple-300', sel: 'ring-purple-500/30' },
+  blue:   { border: 'border-blue-500/40',   bg: 'bg-blue-500/10',   text: 'text-blue-300',   sel: 'ring-blue-500/30' },
+  cyan:   { border: 'border-cyan-500/40',   bg: 'bg-cyan-500/10',   text: 'text-cyan-300',   sel: 'ring-cyan-500/30' },
+  orange: { border: 'border-orange-500/40', bg: 'bg-orange-500/10', text: 'text-orange-300', sel: 'ring-orange-500/30' },
+  yellow: { border: 'border-yellow-500/40', bg: 'bg-yellow-500/10', text: 'text-yellow-300', sel: 'ring-yellow-500/30' },
+  green:  { border: 'border-green-500/40',  bg: 'bg-green-500/10',  text: 'text-green-300',  sel: 'ring-green-500/30' },
 }
 
 const MODALITY_META = {
-  graph: {
-    label: 'Graph Neural Network (GNN)',
-    detail: 'Edge-Enhanced GraphSAGE · Mule rings & hub-and-spoke topology',
-    icon: '🕸️',
-  },
-  behavioral: {
-    label: 'Behavioral VAE',
-    detail: 'Stratified VAE + DSAA · Anomalous amounts & balance patterns',
-    icon: '📊',
-  },
-  temporal: {
-    label: 'Temporal CNN',
-    detail: 'TSCFD Temporal CNN · Timing burstiness & velocity patterns',
-    icon: '⏱️',
-  },
+  graph:      { label: 'Graph Neural Network',  detail: 'Edge-Enhanced GraphSAGE',     icon: '🕸️' },
+  behavioral: { label: 'Behavioral VAE',         detail: 'Stratified VAE + DSAA',       icon: '📊' },
+  temporal:   { label: 'Temporal CNN',           detail: 'TSCFD System-Context CNN',    icon: '⏱️' },
 }
 
-function PipelineStep({ num, title, active, done }) {
-  return (
-    <div className={`flex items-center gap-1.5 text-xs font-medium ${done ? 'text-green-400' : active ? 'text-blue-400' : 'text-slate-600'}`}>
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs border ${done ? 'bg-green-900/60 border-green-600' : active ? 'bg-blue-900/60 border-blue-600 animate-pulse' : 'bg-sentinel-800 border-slate-700'}`}>
-        {done ? '✓' : num}
-      </div>
-      <span className="hidden sm:inline">{title}</span>
-    </div>
-  )
-}
+const STEPS = ['Submit', 'Score', 'Fuse', 'Retrieve', 'Report']
 
 export default function Analyzer() {
-  const [mode, setMode] = useState('scenario')
   const [scenario, setScenario] = useState('mule_network')
-  const [tx, setTx] = useState(DEFAULT_TX)
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [activeStep, setActiveStep] = useState(0)
+  const [result, setResult]     = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(null)
+  const [step, setStep]         = useState(0)
   const [showAblation, setShowAblation] = useState(false)
 
-  const runAnalysis = async () => {
-    setLoading(true)
-    setError(null)
-    setResult(null)
-    setActiveStep(1)
-
+  const run = async () => {
+    setLoading(true); setError(null); setResult(null); setStep(1)
     try {
-      await new Promise(r => setTimeout(r, 300))
-      setActiveStep(2)
-      await new Promise(r => setTimeout(r, 400))
-      setActiveStep(3)
-
-      const data = mode === 'scenario'
-        ? await analyzeScenario(scenario, showAblation)
-        : await analyzeTransaction(tx)
-
-      setActiveStep(4)
-      await new Promise(r => setTimeout(r, 200))
-      setActiveStep(5)
+      await delay(320); setStep(2)
+      await delay(420); setStep(3)
+      const data = await analyzeScenario(scenario, showAblation)
+      setStep(4); await delay(180); setStep(5)
       setResult(data)
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || 'Backend unreachable.')
-      setActiveStep(0)
+      setError(e.response?.data?.detail || e.message || 'Could not reach the backend.')
+      setStep(0)
     } finally {
       setLoading(false)
     }
   }
 
-  const pipelineSteps = [
-    { num: 1, title: 'Submit' },
-    { num: 2, title: 'Score' },
-    { num: 3, title: 'Fuse' },
-    { num: 4, title: 'Retrieve' },
-    { num: 5, title: 'Report' },
-  ]
-
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-white">Transaction Analyzer</h1>
-        <p className="text-slate-400 text-sm">
-          Run any transaction through the full 5-stage DeepSentinel pipeline and receive a forensic investigation report.
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Transaction Analyzer</h1>
+        <p className="text-slate-500 text-sm">Select a fraud scenario and run it through the full AI pipeline.</p>
+      </div>
+
+      {/* Demo notice — compact */}
+      <div className="flex items-center gap-3 bg-amber-500/8 border border-amber-500/20 rounded-xl px-4 py-3">
+        <span className="text-amber-400 flex-shrink-0">⚡</span>
+        <p className="text-xs text-amber-400/80">
+          <span className="text-amber-300 font-medium">Simulated upstream scores</span> — Fusion Engine, RAG retrieval, and LLM report are live.
         </p>
       </div>
 
-      {/* ── Mock mode banner ── */}
-      <div className="bg-amber-950/40 border border-amber-700/50 rounded-xl px-4 py-3 flex items-start gap-3">
-        <span className="text-amber-400 text-lg flex-shrink-0">⚠️</span>
-        <div className="text-sm">
-          <p className="font-semibold text-amber-300">Demo Mode — Simulated Upstream Scores</p>
-          <p className="text-amber-700 mt-0.5">
-            Members 1, 2 &amp; 3 FastAPI endpoints are not yet deployed. Scores for GNN, VAE, and TCN are
-            generated by <code className="bg-amber-900/40 px-1 rounded text-amber-400">backend/mock_scores.py</code> using
-            scenario-based probability ranges. The Fusion Engine, RAG retrieval, and LLM report are all <span className="text-amber-300 font-medium">real and live</span>.
-          </p>
-        </div>
-      </div>
+      <div className="grid lg:grid-cols-5 gap-6 items-start">
 
-      {/* ── Pipeline progress ── */}
-      {(loading || result) && (
-        <div className="bg-sentinel-800 border border-slate-700 rounded-xl px-5 py-3">
-          <div className="flex items-center gap-1 sm:gap-3">
-            {pipelineSteps.map((s, i) => (
-              <div key={s.num} className="flex items-center gap-1 sm:gap-2">
-                <PipelineStep num={s.num} title={s.title} active={activeStep === s.num} done={activeStep > s.num || (result && activeStep >= s.num)} />
-                {i < pipelineSteps.length - 1 && (
-                  <div className={`hidden sm:block h-px flex-1 w-8 ${activeStep > s.num ? 'bg-green-700' : 'bg-slate-700'}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* ── LEFT: Scenario selector ── */}
+        <div className="lg:col-span-2 space-y-5">
 
-      {/* ── Main grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-        {/* ── Input panel ── */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Mode toggle */}
-          <div className="flex rounded-xl overflow-hidden border border-slate-700 bg-sentinel-800">
-            {[
-              { v: 'scenario', label: '🎭  Scenario Mode' },
-              { v: 'transaction', label: '📋  Transaction' },
-            ].map(m => (
-              <button
-                key={m.v}
-                onClick={() => setMode(m.v)}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${mode === m.v ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                {m.label}
-              </button>
-            ))}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
+              Choose a scenario
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {SCENARIOS.map(s => {
+                const c = S_COLOR[s.color]
+                const active = scenario === s.value
+                return (
+                  <button
+                    key={s.value}
+                    onClick={() => setScenario(s.value)}
+                    className={`text-left p-3 rounded-xl border transition-all duration-150 ${
+                      active
+                        ? `${c.border} ${c.bg} ring-1 ${c.sel}`
+                        : 'border-white/[0.07] hover:border-white/[0.14]'
+                    }`}
+                    style={{ background: active ? undefined : 'rgba(255,255,255,0.02)' }}
+                  >
+                    <div className="text-xl mb-1.5">{s.icon}</div>
+                    <p className={`text-xs font-semibold ${active ? c.text : 'text-slate-300'}`}>{s.label}</p>
+                    <p className="text-[10px] text-slate-600 mt-0.5 leading-tight">{s.short}</p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {mode === 'scenario' ? (
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider px-1">
-                Select a fraud scenario to simulate
-              </p>
-              {SCENARIOS.map(s => (
-                <button
-                  key={s.value}
-                  onClick={() => setScenario(s.value)}
-                  className={`w-full text-left p-3.5 rounded-xl border transition-all ${
-                    scenario === s.value
-                      ? 'border-blue-500 bg-blue-950/30 ring-1 ring-blue-500/20'
-                      : 'border-slate-700 bg-sentinel-800 hover:border-slate-500 hover:bg-sentinel-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{s.icon}</span>
-                    <span className="font-semibold text-sm text-slate-100">{s.label}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1 ml-6">{s.desc}</p>
-                  <p className="text-xs text-slate-600 mt-0.5 ml-6">
-                    Expected: <span className="text-slate-500">{s.expect}</span>
-                  </p>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-sentinel-800 border border-slate-700 rounded-xl p-4 space-y-3">
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">PaySim Transaction Fields</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { k: 'step', l: 'Step (1–744)', t: 'number', s: '1' },
-                  { k: 'type', l: 'Type' },
-                  { k: 'amount', l: 'Amount', t: 'number', s: '0.01' },
-                  { k: 'nameOrig', l: 'Sender' },
-                  { k: 'nameDest', l: 'Receiver' },
-                  { k: 'oldbalanceOrg', l: 'Old Bal (Orig)', t: 'number', s: '0.01' },
-                  { k: 'newbalanceOrig', l: 'New Bal (Orig)', t: 'number', s: '0.01' },
-                  { k: 'oldbalanceDest', l: 'Old Bal (Dest)', t: 'number', s: '0.01' },
-                  { k: 'newbalanceDest', l: 'New Bal (Dest)', t: 'number', s: '0.01' },
-                ].map(f => (
-                  <div key={f.k} className="flex flex-col gap-1">
-                    <label className="text-xs text-slate-400">{f.l}</label>
-                    {f.k === 'type' ? (
-                      <select
-                        value={tx.type}
-                        onChange={e => setTx(p => ({ ...p, type: e.target.value }))}
-                        className="bg-sentinel-900 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
-                      >
-                        {TX_TYPES.map(t => <option key={t}>{t}</option>)}
-                      </select>
-                    ) : (
-                      <input
-                        type={f.t || 'text'}
-                        step={f.s}
-                        value={tx[f.k]}
-                        onChange={e => setTx(p => ({
-                          ...p,
-                          [f.k]: f.t === 'number' ? parseFloat(e.target.value) || 0 : e.target.value,
-                        }))}
-                        className="bg-sentinel-900 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Ablation toggle — only available in scenario mode */}
-          {mode === 'scenario' && (
-            <button
-              onClick={() => setShowAblation(v => !v)}
-              className={`w-full py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                showAblation
-                  ? 'border-purple-600 bg-purple-950/40 text-purple-300'
-                  : 'border-slate-700 bg-sentinel-800 text-slate-400 hover:border-slate-500'
-              }`}
-            >
-              <span>{showAblation ? '🔬' : '🔬'}</span>
-              {showAblation ? 'Ablation Mode ON — RAG vs No-RAG comparison' : 'Enable Ablation Study (RAG vs No-RAG)'}
-            </button>
-          )}
-
+          {/* Ablation toggle */}
           <button
-            onClick={runAnalysis}
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+            onClick={() => setShowAblation(v => !v)}
+            className={`w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-medium transition-all ${
+              showAblation
+                ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
+                : 'border-white/[0.07] text-slate-500 hover:text-slate-300 hover:border-white/[0.14]'
+            }`}
+            style={{ background: showAblation ? undefined : 'rgba(255,255,255,0.02)' }}
           >
-            {loading ? <><span className="animate-spin text-base">⟳</span> Running pipeline…</> : '▶  Run DeepSentinel Pipeline'}
+            <span>🔬</span>
+            <span>{showAblation ? 'Ablation mode on — RAG vs No-RAG' : 'Enable RAG vs No-RAG comparison'}</span>
+          </button>
+
+          {/* Run button */}
+          <button
+            onClick={run}
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)', boxShadow: '0 4px 20px rgba(37,99,235,0.3)' }}
+          >
+            {loading
+              ? <><Spinner /> Analysing…</>
+              : '▶  Run Pipeline'
+            }
           </button>
 
           {error && (
-            <div className="bg-red-950/40 border border-red-700/60 text-red-300 rounded-xl p-3.5 space-y-1.5 text-sm">
-              <p className="font-semibold">Pipeline Error</p>
-              <p className="text-red-400 text-xs">{error}</p>
-              <p className="text-slate-600 text-xs pt-1">
-                Check that the Railway backend is reachable at <span className="text-slate-500">/health</span>
-              </p>
+            <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-1">
+              <p className="text-sm font-semibold text-red-400">Pipeline error</p>
+              <p className="text-xs text-red-400/70">{error}</p>
             </div>
           )}
         </div>
 
-        {/* ── Results panel ── */}
+        {/* ── RIGHT: Results ── */}
         <div className="lg:col-span-3 space-y-4">
 
+          {/* Pipeline progress */}
+          {(loading || result) && (
+            <div className="flex items-center gap-2 px-1">
+              {STEPS.map((s, i) => {
+                const done = step > i + 1 || (result && step >= i + 1)
+                const active = step === i + 1
+                return (
+                  <div key={s} className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
+                        done ? 'bg-green-500 text-white' : active ? 'bg-blue-500 text-white ring-2 ring-blue-500/30' : 'bg-white/5 text-slate-600 border border-white/10'
+                      }`}>
+                        {done ? '✓' : i + 1}
+                      </div>
+                      <span className={`text-[10px] font-medium truncate hidden sm:block ${done ? 'text-green-400' : active ? 'text-blue-400' : 'text-slate-700'}`}>{s}</span>
+                    </div>
+                    {i < STEPS.length - 1 && (
+                      <div className={`h-px flex-1 ${done ? 'bg-green-600/40' : 'bg-white/5'}`} />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Empty state */}
           {!result && !loading && (
-            <div className="h-72 flex flex-col items-center justify-center gap-3 text-slate-700 border border-dashed border-slate-800 rounded-2xl">
-              <span className="text-5xl">🔍</span>
-              <p className="font-medium text-slate-600">Select a scenario and run the pipeline</p>
-              <p className="text-xs">Results will appear here</p>
+            <div className="flex flex-col items-center justify-center gap-4 py-24 rounded-2xl border border-dashed border-white/[0.06]">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center text-3xl">🔍</div>
+              <div className="text-center">
+                <p className="font-medium text-slate-500">No results yet</p>
+                <p className="text-xs text-slate-700 mt-1">Select a scenario and click Run Pipeline</p>
+              </div>
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && !result && (
+            <div className="space-y-3">
+              {[80, 60, 40].map(w => (
+                <div key={w} className="h-12 rounded-xl bg-white/[0.03] animate-pulse border border-white/[0.04]" style={{ width: `${w}%` }} />
+              ))}
             </div>
           )}
 
           {result && (
-            <>
-              {/* ── STAGE 1+2+3: Transaction + Scores ── */}
-              <div className="bg-sentinel-800 border border-slate-700 rounded-2xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Stage 1–3 · Transaction → Scores → Fusion</p>
-                    <p className="font-mono text-xs text-slate-400 mt-0.5">{result.transaction_id}</p>
-                    {result.mock_scenario && (
-                      <p className="text-xs text-amber-500 mt-0.5">
-                        Scenario: <span className="font-semibold">{result.mock_scenario}</span>
-                        <span className="ml-1 text-slate-600">(mock scores)</span>
-                      </p>
-                    )}
-                  </div>
-                  <RiskBadge classification={result.classification} large />
+            <div className="space-y-4">
+
+              {/* ── Classification banner ── */}
+              <ClassificationBanner result={result} />
+
+              {/* ── Model scores ── */}
+              <div className="rounded-2xl border border-white/[0.07] p-5 space-y-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">AI Detection Scores</p>
+                  <span className="text-xs text-slate-600">{result.modalities_used} / 3 models active</span>
                 </div>
-
-                <div className="p-5 flex flex-col sm:flex-row gap-6 items-center">
-                  {/* Fused gauge */}
-                  <div className="flex-shrink-0 flex flex-col items-center gap-1">
-                    <ScoreGauge score={result.fraud_confidence_score} label="Fraud Confidence" size={136} />
-                    <p className="text-xs text-slate-500 text-center max-w-[120px] leading-tight">
-                      Fused from all 3 modalities via Logistic Regression
-                    </p>
+                <div className="flex flex-col sm:flex-row gap-6 items-center">
+                  <div className="flex-shrink-0 text-center">
+                    <ScoreGauge score={result.fraud_confidence_score} label="Fraud Confidence" size={120} />
+                    <p className="text-[10px] text-slate-600 mt-1">Ensemble fusion output</p>
                   </div>
-
-                  {/* Modality bars */}
-                  <div className="flex-1 space-y-5 w-full">
-                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                      Per-Modality Scores
-                      <span className="ml-2 font-normal text-slate-600">({result.modalities_used} of 3 available)</span>
-                    </p>
-                    {(['graph', 'behavioral', 'temporal']).map(key => {
-                      const meta = MODALITY_META[key]
+                  <div className="flex-1 space-y-4 w-full">
+                    {['graph', 'behavioral', 'temporal'].map(key => {
+                      const m = MODALITY_META[key]
                       return (
-                        <div key={key} className="space-y-1.5">
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="flex items-center gap-1.5 text-slate-400">
+                              <span>{m.icon}</span>{m.label}
+                            </span>
+                            <span className="text-slate-500 text-[10px] font-mono">{m.detail}</span>
+                          </div>
                           <ModalityBar
-                            label={meta.label}
+                            label=""
                             score={result[`${key}_score`]}
                             available={result[`${key}_available`]}
-                            icon={meta.icon}
+                            icon=""
                           />
-                          <p className="text-xs text-slate-600 ml-6">
-                            {meta.detail}
-                            {!result[`${key}_available`] && ' — score imputed to 0.5 with penalty'}
-                          </p>
                         </div>
                       )
                     })}
@@ -370,57 +230,81 @@ export default function Analyzer() {
                 </div>
               </div>
 
-              {/* ── STAGE 4: FATF Retrieval ── */}
-              <div className="bg-sentinel-800 border border-slate-700 rounded-2xl p-5">
-                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3">
-                  Stage 4 · RAG Retrieval — FATF Typology Match
-                </p>
+              {/* ── FATF match ── */}
+              <div className="rounded-2xl border border-white/[0.07] p-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">FATF Typology Match</p>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="space-y-2">
-                    <p className="text-lg font-bold text-slate-100">{result.retrieval.typology_name}</p>
-                    <p className="text-xs text-slate-500 max-w-sm">
-                      The fused risk profile was converted to a semantic query and matched against 10
-                      FATF typologies in ChromaDB using cosine similarity.
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap mt-1">
-                      <code className="bg-sentinel-900 border border-slate-700 text-slate-400 text-xs px-2 py-0.5 rounded">
-                        {result.retrieval.typology_id}
-                      </code>
-                      <span className="text-xs text-slate-500">Stage: {result.retrieval.stage}</span>
+                    <p className="font-semibold text-white">{result.retrieval.typology_name}</p>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="font-mono bg-white/[0.05] border border-white/10 text-slate-400 px-2 py-0.5 rounded">{result.retrieval.typology_id}</span>
+                      <span className="text-slate-600">Stage: {result.retrieval.stage}</span>
                       <RiskBadge classification={result.retrieval.risk_level} />
                     </div>
+                    <p className="text-xs text-slate-600 max-w-sm">Retrieved via cosine similarity from 10 FATF typologies in ChromaDB.</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-3xl font-bold font-mono text-blue-400">
-                      {(result.retrieval.similarity_score * 100).toFixed(1)}%
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">cosine similarity</p>
-                    <p className="text-xs text-slate-600 mt-1">RAG retrieval score</p>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold font-mono text-blue-400">{(result.retrieval.similarity_score * 100).toFixed(1)}%</p>
+                    <p className="text-xs text-slate-600 mt-0.5">match confidence</p>
                   </div>
                 </div>
               </div>
 
-              {/* ── STAGE 5: LLM Report ── */}
+              {/* ── Forensic report ── */}
               <div>
-                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 px-1">
-                  Stage 5 · LLM Forensic Report — Chain-of-Evidence Grounded Output
-                </p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">LLM Forensic Report</p>
                 <ForensicReport report={result.forensic_report} loading={loading} />
               </div>
 
-              {/* ── ABLATION: RAG vs No-RAG ── */}
+              {/* ── Ablation ── */}
               {result.baseline_report && (
-                <div className="bg-sentinel-800 border border-purple-800/40 rounded-2xl p-5">
-                  <AblationComparison
-                    baselineReport={result.baseline_report}
-                    groundedReport={result.forensic_report}
-                  />
+                <div className="rounded-2xl border border-purple-500/20 p-5" style={{ background: 'rgba(168,85,247,0.04)' }}>
+                  <AblationComparison baselineReport={result.baseline_report} groundedReport={result.forensic_report} />
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
     </div>
   )
 }
+
+function ClassificationBanner({ result }) {
+  const map = {
+    CRITICAL: { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', text: '#ef4444', label: 'CRITICAL RISK' },
+    HIGH:     { bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.3)', text: '#f97316', label: 'HIGH RISK' },
+    MEDIUM:   { bg: 'rgba(234,179,8,0.08)',  border: 'rgba(234,179,8,0.3)',  text: '#eab308', label: 'MEDIUM RISK' },
+    LOW:      { bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.3)',  text: '#22c55e', label: 'LOW RISK' },
+  }
+  const c = map[result.classification] || map.LOW
+  return (
+    <div className="rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
+      <div>
+        <p className="text-xs text-slate-500 font-mono">{result.transaction_id}</p>
+        <p className="text-xl font-bold mt-1" style={{ color: c.text }}>{c.label}</p>
+        {result.mock_scenario && (
+          <p className="text-xs text-slate-600 mt-0.5">Scenario: <span className="text-slate-500">{result.mock_scenario}</span></p>
+        )}
+      </div>
+      <div className="text-right">
+        <p className="text-4xl font-bold font-mono" style={{ color: c.text }}>
+          {Math.round(result.fraud_confidence_score * 100)}
+          <span className="text-2xl">%</span>
+        </p>
+        <p className="text-xs text-slate-600 mt-0.5">fraud confidence</p>
+      </div>
+    </div>
+  )
+}
+
+function Spinner() {
+  return (
+    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  )
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
