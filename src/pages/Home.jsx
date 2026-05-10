@@ -1,215 +1,202 @@
 import { Link } from 'react-router-dom'
-import ArchitectureDiagram from '../components/ArchitectureDiagram'
 
-const PIPELINE_STEPS = [
+const FEATURES = [
   {
-    num: '01',
-    title: 'Transaction Arrives',
-    desc: 'A PaySim or real-time transaction is submitted to the DeepSentinel FastAPI orchestrator.',
-    icon: '📥',
-    accent: 'from-slate-500 to-slate-400',
-    border: 'border-slate-700',
+    icon: '🕸️',
+    title: 'Multi-Modal Detection',
+    desc: 'Three specialized deep learning models — Graph Neural Network, Behavioral VAE, and Temporal CNN — analyse every transaction simultaneously across three independent dimensions of fraud.',
+    accent: 'from-purple-500/20 to-purple-600/5',
+    border: 'border-purple-500/20',
+    tag: 'GNN + VAE + TCN',
   },
   {
-    num: '02',
-    title: 'Parallel Model Scoring',
-    desc: 'Three specialized deep learning models score the transaction simultaneously via async HTTP calls.',
-    icon: '🔀',
-    accent: 'from-purple-500 to-violet-400',
-    border: 'border-purple-700/50',
-    sub: [
-      { label: 'Edge-Enhanced GraphSAGE', detail: 'Detects mule ring topology' },
-      { label: 'Stratified VAE + DSAA', detail: 'Flags behavioral anomalies' },
-      { label: 'TSCFD Temporal CNN', detail: 'Measures timing burstiness' },
-    ],
-  },
-  {
-    num: '03',
-    title: 'Ensemble Fusion',
-    desc: 'A calibrated Logistic Regression meta-classifier fuses the three scores into a single Fraud Confidence Score. Missing models are handled with a confidence penalty.',
-    icon: '⚖️',
-    accent: 'from-green-500 to-emerald-400',
-    border: 'border-green-700/50',
-  },
-  {
-    num: '04',
-    title: 'FATF Typology Retrieval',
-    desc: 'The fused risk profile is converted to a semantic query and matched against 10 FATF fraud typologies stored in a local ChromaDB vector database using cosine similarity.',
     icon: '🔍',
-    accent: 'from-blue-500 to-cyan-400',
-    border: 'border-blue-700/50',
+    title: 'FATF Typology Retrieval',
+    desc: 'The fused risk profile is semantically matched against 10 documented financial crime typologies from the Financial Action Task Force using a local ChromaDB vector database.',
+    accent: 'from-blue-500/20 to-blue-600/5',
+    border: 'border-blue-500/20',
+    tag: 'RAG · ChromaDB',
   },
   {
-    num: '05',
-    title: 'LLM Forensic Report',
-    desc: 'A Chain-of-Evidence prompt forces the LLM to write a 5-section forensic report citing only the retrieved FATF typology and the actual numeric scores — no hallucination.',
     icon: '📋',
-    accent: 'from-red-500 to-rose-400',
-    border: 'border-red-700/50',
+    title: 'Grounded Forensic Reports',
+    desc: 'A Chain-of-Evidence prompt constrains the LLM to cite only retrieved FATF definitions and actual model scores — producing legally admissible reports with zero hallucination.',
+    accent: 'from-cyan-500/20 to-cyan-600/5',
+    border: 'border-cyan-500/20',
+    tag: 'Gemini 2.0 Flash',
+  },
+]
+
+const STEPS = [
+  {
+    n: '01',
+    title: 'Submit a Transaction',
+    desc: 'Select a fraud scenario or enter a real PaySim transaction. The orchestrator dispatches it to all three models in parallel.',
   },
   {
-    num: '06',
-    title: 'Investigator Dashboard',
-    desc: 'The AML investigator sees per-modality risk gauges, the fraud classification, the matched FATF typology, and the full forensic report — everything needed to authorize a SAR filing.',
-    icon: '🖥️',
-    accent: 'from-cyan-500 to-teal-400',
-    border: 'border-cyan-700/50',
+    n: '02',
+    title: 'Fuse & Retrieve',
+    desc: 'A Logistic Regression meta-classifier fuses the three scores. The risk profile is matched against FATF typologies via cosine similarity.',
+  },
+  {
+    n: '03',
+    title: 'Receive a Forensic Report',
+    desc: 'The LLM generates a 5-section audit-traceable report — Executive Summary, Evidence Analysis, Typology Grounding, Confidence Assessment, and Recommendation.',
   },
 ]
 
 const STATS = [
   { n: '3', label: 'Detection Modalities' },
   { n: '10', label: 'FATF Typologies' },
-  { n: '0.988', label: 'Meta-Classifier F1' },
-  { n: '5', label: 'Pipeline Stages' },
+  { n: '0.988', label: 'Classifier F1 Score' },
+  { n: '427', label: 'Papers Surveyed — Gap Confirmed' },
 ]
 
 export default function Home() {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 space-y-24">
+    <div className="overflow-hidden">
 
       {/* ── HERO ── */}
-      <section className="text-center space-y-6">
-        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-4 py-1.5 rounded-full font-medium">
-          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-          AI-Powered Anti-Money Laundering Platform
+      <section className="relative min-h-[88vh] flex items-center justify-center px-6 py-24">
+        {/* Ambient glow background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-blue-600/8 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] bg-cyan-600/6 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-full bg-gradient-to-b from-transparent via-blue-500/5 to-transparent" />
         </div>
 
-        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">
-          <span className="text-white">Deep</span>
-          <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Sentinel</span>
-        </h1>
+        <div className="relative max-w-4xl mx-auto text-center space-y-8">
+          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-4 py-1.5 rounded-full font-medium tracking-wide">
+            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+            AI-Powered Anti-Money Laundering · SLIIT Research Project · 2026
+          </div>
 
-        <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          A cloud-native multi-modal AI platform that detects organized financial crime
-          and <span className="text-white font-medium">automatically generates audit-traceable forensic reports</span> —
-          solving the AI black-box problem in banking compliance.
-        </p>
+          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight leading-tight">
+            <span className="text-white">Detect Fraud.</span>
+            <br />
+            <span className="gradient-text">Explain It Legally.</span>
+          </h1>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <Link
-            to="/analyzer"
-            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-sm"
-          >
-            Open Analyzer →
-          </Link>
-          <Link
-            to="/about"
-            className="border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white font-medium px-6 py-3 rounded-xl transition-all text-sm"
-          >
-            Meet the Team
-          </Link>
-        </div>
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-light">
+            DeepSentinel is a multi-modal AI platform that combines Graph, Behavioral, and Temporal
+            deep learning with a RAG-grounded LLM to generate{' '}
+            <span className="text-slate-200 font-medium">audit-traceable forensic reports</span>{' '}
+            that compliance investigators can actually use.
+          </p>
 
-        <div className="flex flex-wrap justify-center gap-10 pt-6">
-          {STATS.map(s => (
-            <div key={s.label} className="text-center">
-              <p className="text-3xl font-bold text-blue-400 font-mono">{s.n}</p>
-              <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link
+              to="/analyzer"
+              className="group bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-500/35 text-sm flex items-center gap-2"
+            >
+              Open Analyzer
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </Link>
+            <Link
+              to="/about"
+              className="border border-white/10 hover:border-white/20 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-xl transition-all text-sm"
+            >
+              Meet the Team
+            </Link>
+          </div>
 
-      {/* ── ARCHITECTURE ── */}
-      <section className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white">System Architecture</h2>
-          <p className="text-slate-500 text-sm">End-to-end pipeline from raw transaction to forensic report.</p>
-        </div>
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 overflow-hidden">
-          <ArchitectureDiagram />
-        </div>
-      </section>
-
-      {/* ── PIPELINE ── */}
-      <section className="space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white">How the Pipeline Works</h2>
-          <p className="text-slate-500 text-sm">Six stages from transaction ingestion to investigator-ready report.</p>
-        </div>
-        <div className="relative">
-          <div className="absolute left-7 top-8 bottom-8 w-px bg-slate-800 hidden sm:block" />
-          <div className="space-y-3">
-            {PIPELINE_STEPS.map((step) => (
-              <div key={step.num} className="flex gap-4 items-start group">
-                <div className={`flex-shrink-0 w-14 h-14 rounded-xl border ${step.border} bg-[#0d1117] flex flex-col items-center justify-center z-10 transition-colors`}>
-                  <span className="text-lg leading-none">{step.icon}</span>
-                  <span className="text-xs font-mono text-slate-600 mt-0.5">{step.num}</span>
-                </div>
-                <div className="flex-1 bg-slate-900/40 border border-slate-800 rounded-xl p-4 hover:border-slate-700 hover:bg-slate-900/70 transition-all">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${step.accent}`} />
-                    <p className="font-semibold text-slate-100 text-sm">{step.title}</p>
-                  </div>
-                  <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
-                  {step.sub && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {step.sub.map(s => (
-                        <span key={s.label} className="text-xs bg-[#0d1117] border border-slate-800 text-slate-400 px-2.5 py-1 rounded-lg">
-                          <span className="text-slate-300 font-medium">{s.label}</span>
-                          <span className="ml-1 text-slate-600">— {s.detail}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          {/* Stats row */}
+          <div className="flex flex-wrap justify-center gap-10 pt-8 border-t border-white/5">
+            {STATS.map(s => (
+              <div key={s.label} className="text-center">
+                <p className="text-3xl font-bold gradient-text font-mono">{s.n}</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-[120px] leading-tight">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── RESEARCH GAP ── */}
-      <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white">The Research Gap We're Solving</h2>
-          <p className="text-slate-500 text-sm">Confirmed absent across 427 papers in the ScienceDirect 2025 fraud detection survey.</p>
+      {/* ── FEATURES ── */}
+      <section className="max-w-5xl mx-auto px-6 py-20 space-y-12">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl font-bold text-white">Three Layers, One Report</h2>
+          <p className="text-slate-500 max-w-xl mx-auto">
+            Each layer solves a different piece of the forensic puzzle. Together they produce something
+            no existing system offers.
+          </p>
         </div>
-        <div className="grid sm:grid-cols-3 gap-6 text-sm">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-              <p className="font-semibold text-red-400">The Problem</p>
+
+        <div className="grid sm:grid-cols-3 gap-4">
+          {FEATURES.map(f => (
+            <div
+              key={f.title}
+              className={`relative card card-hover p-6 space-y-4 overflow-hidden`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${f.accent} pointer-events-none`} />
+              <div className="relative">
+                <div className={`inline-flex items-center gap-2 text-xs font-mono border ${f.border} bg-black/20 px-2.5 py-1 rounded-lg text-slate-400 mb-4`}>
+                  {f.tag}
+                </div>
+                <div className="text-3xl mb-3">{f.icon}</div>
+                <h3 className="font-semibold text-white text-lg mb-2">{f.title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+              </div>
             </div>
-            <p className="text-slate-500 leading-relaxed">Deep learning fraud models output a risk score but no explanation. AML investigators cannot file a SAR based on a number alone — they need a legally traceable narrative.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <p className="font-semibold text-amber-400">Why Existing Tools Fail</p>
-            </div>
-            <p className="text-slate-500 leading-relaxed">SHAP/LIME produce numeric feature weights — not legal narratives. Plain LLM forensic tools hallucinate facts that courts reject. Neither is legally admissible.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              <p className="font-semibold text-green-400">Our Contribution</p>
-            </div>
-            <p className="text-slate-500 leading-relaxed">Typology-Grounded RAG: the LLM is forced to anchor every claim to a retrieved FATF typology and a specific numerical score — making forensic reports legally admissible.</p>
-          </div>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-800">
-          <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-2">
-            <span>🏛️</span>
-            <div>
-              <p className="text-xs font-semibold text-blue-300">SDG 16</p>
-              <p className="text-xs text-slate-500">Peace, Justice & Strong Institutions</p>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="max-w-5xl mx-auto px-6 py-20 space-y-12">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl font-bold text-white">From Transaction to Report in 3 Steps</h2>
+          <p className="text-slate-500 max-w-xl mx-auto">
+            The entire pipeline runs in under 10 seconds — from raw transaction data to a
+            court-ready forensic narrative.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-6">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="relative">
+              {i < STEPS.length - 1 && (
+                <div className="hidden sm:block absolute top-6 left-[calc(100%+12px)] w-[calc(100%-24px)] h-px bg-gradient-to-r from-blue-500/30 to-transparent" />
+              )}
+              <div className="card card-hover p-6 h-full space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 text-sm font-bold flex items-center justify-center font-mono">
+                    {s.n}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-white">{s.title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="relative card overflow-hidden p-10 text-center space-y-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-cyan-600/5 pointer-events-none" />
+          <div className="relative space-y-4">
+            <h2 className="text-3xl font-bold text-white">See It in Action</h2>
+            <p className="text-slate-400 max-w-md mx-auto">
+              Run any of 6 fraud scenarios through the live pipeline. The Fusion Engine, RAG
+              retrieval, and LLM report are all real and deployed.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <Link
+                to="/analyzer"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-7 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-sm"
+              >
+                Open Transaction Analyzer →
+              </Link>
+              <Link
+                to="/faq"
+                className="border border-white/10 hover:border-white/20 text-slate-400 hover:text-white px-6 py-3 rounded-xl transition-all text-sm"
+              >
+                Read the FAQ
+              </Link>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-4 py-2">
-            <span>🏗️</span>
-            <div>
-              <p className="text-xs font-semibold text-purple-300">SDG 9</p>
-              <p className="text-xs text-slate-500">Industry, Innovation & Infrastructure</p>
-            </div>
-          </div>
-          <Link
-            to="/about"
-            className="flex items-center gap-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors ml-auto"
-          >
-            Meet the research team →
-          </Link>
         </div>
       </section>
 
