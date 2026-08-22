@@ -1,23 +1,52 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { setAuthToken, getCurrentUser } from './services/api'
 import Navbar from './components/Navbar'
+import Login from './pages/Login'
 import Home from './pages/Home'
 import Analyzer from './pages/Analyzer'
 import Settings from './pages/Settings'
 import About from './pages/About'
 import FAQ from './pages/FAQ'
 
+function ProtectedRoute({ element, isAuthenticated, isLoading }) {
+  if (isLoading) return <div className="min-h-screen bg-[#06091a] flex items-center justify-center"><p className="text-white">Loading...</p></div>
+  return isAuthenticated ? element : <Navigate to="/login" />
+}
+
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check if user already logged in
+    const token = localStorage.getItem('token')
+    if (token) {
+      setAuthToken(token)
+      setIsAuthenticated(true)
+    }
+    setIsLoading(false)
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setAuthToken(null)
+    setIsAuthenticated(false)
+  }
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[#06091a]">
-        <Navbar />
+        {isAuthenticated && <Navbar onLogout={handleLogout} />}
         <main>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/analyzer" element={<Analyzer />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/faq" element={<FAQ />} />
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/analyzer" /> : <Login />} />
+            <Route path="/" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
+            <Route path="/analyzer" element={<ProtectedRoute element={<Analyzer />} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+            <Route path="/settings" element={<ProtectedRoute element={<Settings />} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+            <Route path="/about" element={<ProtectedRoute element={<About />} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+            <Route path="/faq" element={<ProtectedRoute element={<FAQ />} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
           </Routes>
         </main>
 

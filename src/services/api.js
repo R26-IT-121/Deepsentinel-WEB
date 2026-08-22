@@ -36,3 +36,23 @@ export const sendTestEmail = (riskManager) =>
 
 export const getEmailTemplate = (classification = 'HIGH') =>
   `${BASE_URL}/email-template/preview?classification=${classification}`
+
+// ── Authentication ──
+export const login = (username, password) =>
+  client.post('/auth/login', { username, password }).then((r) => r.data)
+
+export const logout = (token) =>
+  client.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data)
+
+export const getCurrentUser = (token) =>
+  client.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data)
+
+export const setAuthToken = (token) => {
+  if (token) {
+    client.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    localStorage.setItem('token', token)
+  } else {
+    delete client.defaults.headers.common['Authorization']
+    localStorage.removeItem('token')
+  }
+}
