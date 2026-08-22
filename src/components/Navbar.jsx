@@ -18,15 +18,21 @@ export default function Navbar() {
   const menuRef = useRef(null)
 
   // Navigation is filtered by capability, so a user is never shown a link that
-  // would refuse them.
-  const links = [
-    { to: '/', label: 'Overview' },
-    { to: '/analyzer', label: 'Analyzer' },
-    auth.canManageAlerts && { to: '/settings', label: 'Settings' },
-    auth.canManageUsers && { to: '/users', label: 'Users' },
-    auth.canViewAuditLog && { to: '/audit-log', label: 'Audit Log' },
-    { to: '/about', label: 'About' },
-  ].filter(Boolean)
+  // would refuse them. Signed-out visitors see only the public showcase.
+  const links = auth.isAuthenticated
+    ? [
+        { to: '/', label: 'Overview' },
+        { to: '/analyzer', label: 'Analyzer' },
+        auth.canManageAlerts && { to: '/settings', label: 'Settings' },
+        auth.canManageUsers && { to: '/users', label: 'Users' },
+        auth.canViewAuditLog && { to: '/audit-log', label: 'Audit Log' },
+        { to: '/about', label: 'About' },
+      ].filter(Boolean)
+    : [
+        { to: '/', label: 'Overview' },
+        { to: '/about', label: 'Research' },
+        { to: '/faq', label: 'FAQ' },
+      ]
 
   useEffect(() => {
     setMobileOpen(false)
@@ -94,7 +100,16 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative hidden md:block" ref={menuRef}>
+          {!auth.isAuthenticated && (
+            <Link
+              to="/login"
+              className="hidden rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-500 md:block"
+            >
+              Sign in
+            </Link>
+          )}
+
+          <div className={cx('relative hidden md:block', !auth.isAuthenticated && 'md:hidden')} ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
@@ -177,24 +192,35 @@ export default function Navbar() {
           ))}
 
           <div className="mt-3 space-y-1 border-t border-subtle pt-3">
-            <div className="px-4 py-2">
-              <p className="truncate text-sm text-white">{auth.user?.full_name}</p>
-              <Badge tone={ROLE_TONE[auth.role]} className="mt-1.5">
-                {ROLE_LABELS[auth.role] ?? auth.role}
-              </Badge>
-            </div>
-            <Link
-              to="/account"
-              className="block rounded-xl px-4 py-2.5 text-sm text-slate-400 hover:bg-surface-raised hover:text-white"
-            >
-              Account &amp; password
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="block w-full rounded-xl px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
-            >
-              Sign out
-            </button>
+            {auth.isAuthenticated ? (
+              <>
+                <div className="px-4 py-2">
+                  <p className="truncate text-sm text-white">{auth.user?.full_name}</p>
+                  <Badge tone={ROLE_TONE[auth.role]} className="mt-1.5">
+                    {ROLE_LABELS[auth.role] ?? auth.role}
+                  </Badge>
+                </div>
+                <Link
+                  to="/account"
+                  className="block rounded-xl px-4 py-2.5 text-sm text-slate-400 hover:bg-surface-raised hover:text-white"
+                >
+                  Account &amp; password
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full rounded-xl px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="block rounded-xl bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       )}

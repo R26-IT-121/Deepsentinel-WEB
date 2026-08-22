@@ -14,27 +14,39 @@ import Account from './pages/Account'
 import About from './pages/About'
 import FAQ from './pages/FAQ'
 
+/**
+ * Route access.
+ *
+ * Public — the research showcase. Reviewers and prospective customers can read
+ * what the platform is without an account.
+ *
+ * Protected — anything that touches real data or configuration. Gated on a
+ * capability, not a role, and independently enforced server-side.
+ */
 function Shell() {
   const { isAuthenticated } = useAuth()
 
   return (
     <div className="flex min-h-screen flex-col bg-sentinel-950">
-      {isAuthenticated && <Navbar />}
+      <Navbar />
 
       <main className="flex-1">
         <ErrorBoundary>
           <Routes>
+            {/* Public */}
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route
               path="/login"
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+              element={isAuthenticated ? <Navigate to="/analyzer" replace /> : <Login />}
             />
 
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            {/* Any signed-in user */}
             <Route path="/analyzer" element={<ProtectedRoute><Analyzer /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
-            <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-            <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
 
+            {/* Capability-gated */}
             <Route
               path="/settings"
               element={
@@ -65,7 +77,7 @@ function Shell() {
         </ErrorBoundary>
       </main>
 
-      {isAuthenticated && <Footer />}
+      <Footer />
     </div>
   )
 }
