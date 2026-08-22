@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { login } from '../services/api'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { Alert, Button, Card, Field, Input } from '../components/ui'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { signIn } = useAuth()
+
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -11,136 +15,91 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username || !password) {
-      setError('Username and password required')
+    if (!username.trim() || !password) {
+      setError('Enter both a username and a password.')
       return
     }
 
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-      const response = await login(username, password)
-
-      // Store token
-      localStorage.setItem('token', response.access_token)
-      localStorage.setItem('user', JSON.stringify(response.user))
-
-      // Redirect based on role
-      navigate('/analyzer')
+      await signIn(username.trim(), password)
+      // Return the user to wherever they were headed before being redirected.
+      navigate(location.state?.from ?? '/', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed')
+      setError(err.userMessage ?? 'Sign-in failed.')
+      setPassword('')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 px-4">
-      <div className="w-full max-w-md">
-
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm animate-fade-in">
+        <div className="mb-8 text-center">
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-lg font-bold text-white shadow-lg shadow-blue-500/30">
               DS
             </div>
             <span className="text-2xl font-bold text-white">
               Deep<span className="text-blue-400">Sentinel</span>
             </span>
           </div>
-          <p className="text-slate-400 text-sm">Multi-Modal AI Fraud Detection</p>
+          <p className="text-sm text-slate-500">Multi-modal AI fraud detection</p>
         </div>
 
-        {/* Login Card */}
-        <div className="rounded-2xl border border-white/[0.07] p-8" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <Card className="p-7">
+          <h1 className="text-lg font-semibold text-white">Sign in</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Use the credentials issued by your administrator.
+          </p>
 
-          <h1 className="text-xl font-bold text-white mb-6">Sign In</h1>
-
-          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <Alert tone="error" className="mt-5" onDismiss={() => setError(null)}>
               {error}
-            </div>
+            </Alert>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Username
-              </label>
-              <input
-                type="text"
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <Field label="Username" htmlFor="username">
+              <Input
+                id="username"
+                name="username"
+                autoComplete="username"
+                autoFocus
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                className="w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                placeholder="your.username"
+                error={Boolean(error)}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Password
-              </label>
-              <input
+            <Field label="Password" htmlFor="password">
+              <Input
+                id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                error={Boolean(error)}
               />
-            </div>
+            </Field>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 transition-all mt-6 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Spinner /> Signing in...
-                </>
-              ) : (
-                '🔐 Sign In'
-              )}
-            </button>
+            <Button type="submit" loading={loading} className="w-full" size="lg">
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
           </form>
+        </Card>
 
-          {/* Demo Credentials */}
-          <div className="mt-8 pt-6 border-t border-white/[0.07]">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
-              Demo Credentials
-            </p>
-            <div className="space-y-2 text-xs text-slate-600">
-              <div>
-                <p className="text-slate-400 font-medium">Admin</p>
-                <p>Username: <code className="bg-white/5 px-2 py-1 rounded">admin</code></p>
-                <p>Password: <code className="bg-white/5 px-2 py-1 rounded">admin123</code></p>
-              </div>
-              <div className="pt-2">
-                <p className="text-slate-500 text-[10px]">
-                  ⚠️ CHANGE PASSWORD IMMEDIATELY IN PRODUCTION
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-slate-600">
-          <p>DeepSentinel Fraud Detection Platform</p>
-          <p>© 2026 · Bank-Grade Security · Production Ready</p>
-        </div>
+        <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-700">
+          Accounts are created by an administrator.
+          <br />
+          Repeated failed attempts will temporarily lock the account.
+        </p>
       </div>
     </div>
-  )
-}
-
-function Spinner() {
-  return (
-    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-    </svg>
   )
 }
