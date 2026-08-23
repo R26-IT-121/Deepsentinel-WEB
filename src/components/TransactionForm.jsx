@@ -1,234 +1,227 @@
 import { useState } from 'react'
+import { Button, Field, Input, Select } from './ui'
 
-const TRANSACTION_TYPES = [
-  'CASH_IN',
-  'CASH_OUT',
-  'DEBIT',
-  'PAYMENT',
-  'TRANSFER',
+const TRANSACTION_TYPES = ['TRANSFER', 'CASH_OUT', 'CASH_IN', 'PAYMENT', 'DEBIT']
+
+const randomAccount = () => 'C' + String(Math.floor(Math.random() * 1e9)).padStart(9, '0')
+
+const DEFAULTS = {
+  step: 1,
+  type: 'TRANSFER',
+  amount: 50000,
+  nameOrig: randomAccount(),
+  nameDest: randomAccount(),
+  oldbalanceOrg: 50000,
+  newbalanceOrig: 0,
+  oldbalanceDest: 0,
+  newbalanceDest: 50000,
+  isFlaggedFraud: 0,
+}
+
+// Only the fields the backend's TransactionData accepts. Anything else is
+// silently dropped by Pydantic, so it is built explicitly rather than spread.
+const NUMERIC = [
+  'amount',
+  'oldbalanceOrg',
+  'newbalanceOrig',
+  'oldbalanceDest',
+  'newbalanceDest',
 ]
 
 export default function TransactionForm({ onSubmit, loading }) {
-  const [formData, setFormData] = useState({
-    step: 1,
-    type: 'TRANSFER',
-    amount: 1000,
-    nameOrig: 'C' + Math.random().toString().slice(2, 11),
-    nameDest: 'C' + Math.random().toString().slice(2, 11),
-    oldbalanceOrg: 10000,
-    newbalanceOrig: 9000,
-    oldbalanceDest: 5000,
-    newbalanceDest: 6000,
-    isFlaggedFraud: 0,
-  })
-
+  const [form, setForm] = useState(DEFAULTS)
   const [errors, setErrors] = useState({})
 
-  const validateForm = () => {
-    const newErrors = {}
-    if (formData.amount <= 0) newErrors.amount = 'Amount must be positive'
-    if (!formData.nameOrig?.trim()) newErrors.nameOrig = 'Sender name required'
-    if (!formData.nameDest?.trim()) newErrors.nameDest = 'Recipient name required'
-    if (formData.oldbalanceOrg < 0) newErrors.oldbalanceOrg = 'Cannot be negative'
-    if (formData.oldbalanceDest < 0) newErrors.oldbalanceDest = 'Cannot be negative'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const set = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }))
+    if (errors[key]) setErrors((x) => ({ ...x, [key]: undefined }))
   }
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+  const validate = () => {
+    const e = {}
+    const step = Number(form.step)
+    if (!Number.isInteger(step) || step < 1 || step > 744)
+      e.step = 'Whole number between 1 and 744'
+    if (!(Number(form.amount) > 0)) e.amount = 'Must be greater than zero'
+    if (!/^[A-Za-z]\d{6,}$/.test(String(form.nameOrig).trim()))
+      e.nameOrig = 'Letter followed by at least 6 digits, e.g. C123456789'
+    if (!/^[A-Za-z]\d{6,}$/.test(String(form.nameDest).trim()))
+      e.nameDest = 'Letter followed by at least 6 digits'
+    if (String(form.nameOrig).trim() === String(form.nameDest).trim())
+      e.nameDest = 'Sender and recipient must differ'
+
+    for (const key of NUMERIC) {
+      if (Number(form[key]) < 0) e[key] = 'Cannot be negative'
     }
+
+    setErrors(e)
+    return Object.keys(e).length === 0
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (validateForm()) {
-      onSubmit({
-        transaction_id: `TX_${Date.now()}`,
-        ...formData,
-        step: parseInt(formData.step),
-        amount: parseFloat(formData.amount),
-        oldbalanceOrg: parseFloat(formData.oldbalanceOrg),
-        newbalanceOrig: parseFloat(formData.newbalanceOrig),
-        oldbalanceDest: parseFloat(formData.oldbalanceDest),
-        newbalanceDest: parseFloat(formData.newbalanceDest),
-      })
-    }
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (!validate()) return
+
+    onSubmit({
+      step: Number(form.step),
+      type: form.type,
+      amount: Number(form.amount),
+      nameOrig: String(form.nameOrig).trim(),
+      nameDest: String(form.nameDest).trim(),
+      oldbalanceOrg: Number(form.oldbalanceOrg),
+      newbalanceOrig: Number(form.newbalanceOrig),
+      oldbalanceDest: Number(form.oldbalanceDest),
+      newbalanceDest: Number(form.newbalanceDest),
+      isFlaggedFraud: Number(form.isFlaggedFraud) || 0,
+    })
   }
 
-  const handleGenerateRandom = () => {
-    setFormData(prev => ({
-      ...prev,
+  // A drained originating account paired with a matching credit is the shape a
+  // mule transfer takes, so the generator produces something worth scoring
+  // rather than uniform noise.
+  const randomise = () => {
+    const amount = Math.floor(Math.random() * 200000) + 1000
+    const openingBalance = amount + Math.floor(Math.random() * 5000)
+    setForm({
       step: Math.floor(Math.random() * 744) + 1,
-      amount: Math.floor(Math.random() * 100000) + 100,
-      nameOrig: 'C' + Math.random().toString().slice(2, 11),
-      nameDest: 'C' + Math.random().toString().slice(2, 11),
-      oldbalanceOrg: Math.floor(Math.random() * 50000),
-      oldbalanceDest: Math.floor(Math.random() * 50000),
-    }))
+      type: TRANSACTION_TYPES[Math.floor(Math.random() * 2)], // TRANSFER or CASH_OUT
+      amount,
+      nameOrig: randomAccount(),
+      nameDest: randomAccount(),
+      oldbalanceOrg: openingBalance,
+      newbalanceOrig: openingBalance - amount,
+      oldbalanceDest: Math.floor(Math.random() * 20000),
+      newbalanceDest: Math.floor(Math.random() * 20000) + amount,
+      isFlaggedFraud: 0,
+    })
+    setErrors({})
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Transaction Type & Amount */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-            Transaction Type
-          </label>
-          <select
-            value={formData.type}
-            onChange={e => handleChange('type', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            {TRANSACTION_TYPES.map(t => (
-              <option key={t} value={t}>{t}</option>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Type" htmlFor="tx-type">
+          <Select id="tx-type" value={form.type} onChange={set('type')}>
+            {TRANSACTION_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-            Amount ({errors.amount && <span className="text-red-400">{errors.amount}</span>})
-          </label>
-          <input
+          </Select>
+        </Field>
+
+        <Field label="Amount" error={errors.amount} htmlFor="tx-amount">
+          <Input
+            id="tx-amount"
             type="number"
-            value={formData.amount}
-            onChange={e => handleChange('amount', e.target.value)}
             step="0.01"
             min="0"
-            className={`w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-1 ${
-              errors.amount
-                ? 'border-red-500/50 focus:ring-red-500'
-                : 'border-white/[0.10] focus:ring-blue-500'
-            }`}
+            value={form.amount}
+            onChange={set('amount')}
+            error={errors.amount}
           />
+        </Field>
+      </div>
+
+      <Field label="Sender account" error={errors.nameOrig} htmlFor="tx-orig">
+        <Input
+          id="tx-orig"
+          value={form.nameOrig}
+          onChange={set('nameOrig')}
+          placeholder="C123456789"
+          className="font-mono"
+          error={errors.nameOrig}
+        />
+      </Field>
+
+      <Field label="Recipient account" error={errors.nameDest} htmlFor="tx-dest">
+        <Input
+          id="tx-dest"
+          value={form.nameDest}
+          onChange={set('nameDest')}
+          placeholder="C987654321"
+          className="font-mono"
+          error={errors.nameDest}
+        />
+      </Field>
+
+      <div className="space-y-3 rounded-xl border border-subtle bg-surface p-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          Balances
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Sender before" error={errors.oldbalanceOrg}>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.oldbalanceOrg}
+              onChange={set('oldbalanceOrg')}
+              error={errors.oldbalanceOrg}
+            />
+          </Field>
+          <Field label="Sender after" error={errors.newbalanceOrig}>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.newbalanceOrig}
+              onChange={set('newbalanceOrig')}
+              error={errors.newbalanceOrig}
+            />
+          </Field>
+          <Field label="Recipient before" error={errors.oldbalanceDest}>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.oldbalanceDest}
+              onChange={set('oldbalanceDest')}
+              error={errors.oldbalanceDest}
+            />
+          </Field>
+          <Field label="Recipient after" error={errors.newbalanceDest}>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.newbalanceDest}
+              onChange={set('newbalanceDest')}
+              error={errors.newbalanceDest}
+            />
+          </Field>
         </div>
       </div>
 
-      {/* Sender & Recipient */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-            Sender Account ({errors.nameOrig && <span className="text-red-400">{errors.nameOrig}</span>})
-          </label>
-          <input
-            type="text"
-            value={formData.nameOrig}
-            onChange={e => handleChange('nameOrig', e.target.value)}
-            placeholder="e.g., C123456789"
-            maxLength="11"
-            className={`w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border text-white text-sm placeholder-slate-600 font-mono focus:outline-none focus:ring-1 ${
-              errors.nameOrig
-                ? 'border-red-500/50 focus:ring-red-500'
-                : 'border-white/[0.10] focus:ring-blue-500'
-            }`}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-            Recipient Account ({errors.nameDest && <span className="text-red-400">{errors.nameDest}</span>})
-          </label>
-          <input
-            type="text"
-            value={formData.nameDest}
-            onChange={e => handleChange('nameDest', e.target.value)}
-            placeholder="e.g., C987654321"
-            maxLength="11"
-            className={`w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border text-white text-sm placeholder-slate-600 font-mono focus:outline-none focus:ring-1 ${
-              errors.nameDest
-                ? 'border-red-500/50 focus:ring-red-500'
-                : 'border-white/[0.10] focus:ring-blue-500'
-            }`}
-          />
-        </div>
-      </div>
-
-      {/* Balances */}
-      <div className="space-y-3 p-4 rounded-lg bg-white/[0.01] border border-white/[0.07]">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Account Balances</p>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">Old Balance (Sender)</label>
-            <input
-              type="number"
-              value={formData.oldbalanceOrg}
-              onChange={e => handleChange('oldbalanceOrg', e.target.value)}
-              step="0.01"
-              min="0"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">New Balance (Sender)</label>
-            <input
-              type="number"
-              value={formData.newbalanceOrig}
-              onChange={e => handleChange('newbalanceOrig', e.target.value)}
-              step="0.01"
-              min="0"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">Old Balance (Recipient)</label>
-            <input
-              type="number"
-              value={formData.oldbalanceDest}
-              onChange={e => handleChange('oldbalanceDest', e.target.value)}
-              step="0.01"
-              min="0"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-600 mb-1">New Balance (Recipient)</label>
-            <input
-              type="number"
-              value={formData.newbalanceDest}
-              onChange={e => handleChange('newbalanceDest', e.target.value)}
-              step="0.01"
-              min="0"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Step */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-          Time Step (1-744 hours)
-        </label>
-        <input
+      <Field
+        label="Time step"
+        error={errors.step}
+        hint="PaySim simulation hour, 1–744"
+        htmlFor="tx-step"
+      >
+        <Input
+          id="tx-step"
           type="number"
-          value={formData.step}
-          onChange={e => handleChange('step', e.target.value)}
           min="1"
           max="744"
-          className="w-full px-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.10] text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          value={form.step}
+          onChange={set('step')}
+          error={errors.step}
         />
-        <p className="text-[10px] text-slate-700 mt-1">Transaction sequence number in the dataset</p>
-      </div>
+      </Field>
 
-      {/* Buttons */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-        >
-          {loading ? <>⏳ Analyzing…</> : <>▶ Analyze Transaction</>}
-        </button>
-        <button
+      <div className="flex gap-2">
+        <Button type="submit" loading={loading} className="flex-1">
+          {loading ? 'Analyzing…' : 'Analyze transaction'}
+        </Button>
+        <Button
           type="button"
-          onClick={handleGenerateRandom}
-          className="px-4 py-3 rounded-lg bg-white/5 border border-white/[0.10] text-slate-300 hover:text-white hover:border-white/[0.20] transition-all"
-          title="Generate random test transaction"
+          variant="secondary"
+          onClick={randomise}
+          title="Generate a plausible test transaction"
         >
           🎲
-        </button>
+        </Button>
       </div>
     </form>
   )
