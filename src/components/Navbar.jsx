@@ -29,8 +29,8 @@ export default function Navbar() {
     ? [
         { to: '/', label: 'Overview' },
         { to: '/analyzer', label: 'Analyzer' },
+        { to: '/batch', label: 'Batch upload' },
         { to: '/about', label: 'Architecture' },
-        { to: '/faq', label: 'FAQ' },
       ]
     : [
         { to: '/', label: 'Overview' },

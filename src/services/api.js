@@ -176,5 +176,86 @@ export const updateAlertSettings = (settings) =>
 export const sendTestEmail = (name, email) =>
   client.post('/email/send-test', { name, email }).then((r) => r.data)
 
+export const getEmailStatus = () => client.get('/email/status').then((r) => r.data)
+
+// ── Batch analysis ───────────────────────────────────────────────────────────
+
+/**
+ * Upload a CSV or Excel file and stream per-transaction results.
+ *
+ * Streams rather than returning a promise of the whole result: a large file
+ * takes a while, and the caller should be able to show progress instead of a
+ * spinner. Returns an abort function.
+ */
+export function analyzeBatch(file, { onEvent, onDone, onError, alertThreshold = 0.6 } = {}) {
+  const controller = new AbortController()
+  const form = new FormData()
+  form.append('file', file)
+  form.append('alert_threshold', String(alertThreshold))
+
+  const token = getToken()
+
+  ;(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/analyze/batch`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        let message = `Upload failed (${res.status})`
+        try {
+          const body = await res.json()
+          if (typeof body.detail === 'string') message = body.detail
+        } catch {
+          /* not JSON */
+        }
+        throw new Error(message)
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const chunks = buffer.split('\n\n')
+        buffer = chunks.pop() ?? ''
+
+        for (const chunk of chunks) {
+          let name = 'message'
+          const data = []
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('event:')) name = line.slice(6).trim()
+            else if (line.startsWith('data:')) data.push(line.slice(5).trim())
+          }
+          if (!data.length) continue
+          try {
+            onEvent?.(name, JSON.parse(data.join('\n')))
+          } catch {
+            /* skip an unparseable frame rather than aborting the run */
+          }
+        }
+      }
+      onDone?.()
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        onError?.(
+          err.message === 'Failed to fetch'
+            ? 'Cannot reach the server. Is the backend running?'
+            : err.message,
+        )
+      }
+    }
+  })()
+
+  return () => controller.abort()
+}
+
 export const emailTemplateUrl = (classification = 'HIGH') =>
   `${BASE_URL}/email-template/preview?classification=${classification}`

@@ -7,6 +7,7 @@ import Footer from './components/Footer'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Analyzer from './pages/Analyzer'
+import BatchAnalysis from './pages/BatchAnalysis'
 import Settings from './pages/Settings'
 import Users from './pages/Users'
 import AuditLog from './pages/AuditLog'
@@ -44,6 +45,7 @@ function Shell() {
 
             {/* Any signed-in user */}
             <Route path="/analyzer" element={<ProtectedRoute><Analyzer /></ProtectedRoute>} />
+            <Route path="/batch" element={<ProtectedRoute><BatchAnalysis /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
 
             {/* Capability-gated */}

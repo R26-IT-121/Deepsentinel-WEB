@@ -21,9 +21,9 @@ export default function Footer() {
         { to: '/', label: 'Overview' },
         { to: '/about', label: 'Architecture' },
         { to: '/faq', label: 'FAQ' },
-        auth.isAuthenticated
-          ? { to: '/analyzer', label: 'Transaction analyzer' }
-          : { to: '/login', label: 'Sign in' },
+        auth.isAuthenticated && { to: '/analyzer', label: 'Transaction analyzer' },
+        auth.isAuthenticated && { to: '/batch', label: 'Batch upload' },
+        !auth.isAuthenticated && { to: '/login', label: 'Sign in' },
       ].filter(Boolean),
     },
     {
