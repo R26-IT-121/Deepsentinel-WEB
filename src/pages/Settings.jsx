@@ -8,6 +8,7 @@ import {
   updateAlertSettings,
 } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import AssistantSettings from '../components/AssistantSettings'
 import {
   Alert,
   Badge,
@@ -241,7 +242,7 @@ export default function Settings() {
                   className="flex flex-wrap items-center gap-3 rounded-xl border border-subtle bg-surface p-3.5"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{m.name}</p>
+                    <p className="truncate text-sm font-medium text-slate-200">{m.name}</p>
                     <p className="truncate text-xs text-slate-500">
                       {m.email} · {m.role}
                     </p>
@@ -309,6 +310,8 @@ export default function Settings() {
           ))}
         </div>
       </Card>
+
+      {auth.canConfigureSystem && <AssistantSettings />}
 
       {!auth.canConfigureSystem && (
         <Alert tone="info">
